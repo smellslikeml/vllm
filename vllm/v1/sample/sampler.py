@@ -5,11 +5,16 @@
 import torch
 import torch.nn as nn
 
+import vllm.envs as envs
 from vllm.config.model import LogprobsMode
 from vllm.utils.torch_utils import PIN_MEMORY
 from vllm.v1.outputs import LogprobsTensors, SamplerOutput
 from vllm.v1.sample.metadata import SamplingMetadata
 from vllm.v1.sample.ops.bad_words import apply_bad_words
+from vllm.v1.sample.ops.entropy_temperature import (
+    EntropyTemperatureConfig,
+    entropy_scaled_temperature,
+)
 from vllm.v1.sample.ops.logprobs import batched_count_greater_than
 from vllm.v1.sample.ops.penalties import apply_all_penalties
 from vllm.v1.sample.ops.topk_topp_sampler import TopKTopPSampler
@@ -68,6 +73,12 @@ class Sampler(nn.Module):
         self.pin_memory = PIN_MEMORY
         self.logprobs_mode = logprobs_mode
         self.use_fp64_gumbel = use_fp64_gumbel
+        # Entropy-aware (ReSET) temperature scaling; None when disabled.
+        self.entropy_temp_config: EntropyTemperatureConfig | None = (
+            EntropyTemperatureConfig.from_env()
+            if envs.VLLM_ENTROPY_TEMPERATURE_SCALING
+            else None
+        )
 
     def forward(
         self,
@@ -272,9 +283,16 @@ class Sampler(nn.Module):
 
         assert sampling_metadata.temperature is not None
 
-        # Apply temperature.
+        # Apply temperature. When enabled, adapt it to token-level entropy
+        # first (argmax-invariant, so greedy rows are unaffected and still
+        # selected via the original temperature below).
+        temperature = sampling_metadata.temperature
+        if self.entropy_temp_config is not None:
+            temperature = entropy_scaled_temperature(
+                logits, temperature, self.entropy_temp_config
+            )
         logits = self.apply_temperature(
-            logits, sampling_metadata.temperature, sampling_metadata.all_random
+            logits, temperature, sampling_metadata.all_random
         )
 
         # Apply logits processors that only apply to random sampling
