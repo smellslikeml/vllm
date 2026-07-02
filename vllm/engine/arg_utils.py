@@ -1870,6 +1870,16 @@ class EngineArgs:
                 existing | set(boundary), key=int
             )
 
+            from vllm.model_executor.layers.quantization.turboquant.compression_profile import (  # noqa: E501
+                build_residency_report,
+            )
+
+            logger.info(
+                build_residency_report(
+                    resolved_cache_dtype, model_config.get_head_size()
+                )
+            )
+
         ray_runtime_env = None
         if is_ray_initialized():
             # Ray Serve LLM calls `create_engine_config` in the context
