@@ -1627,6 +1627,7 @@ def add_dataset_parser(parser: FlexibleArgumentParser):
             "custom_audio",
             "custom_image",
             "prefix_repetition",
+            "coding_agent",
             "spec_bench",
             "speed_bench",
             "timed_trace",
@@ -1883,6 +1884,36 @@ def add_dataset_parser(parser: FlexibleArgumentParser):
         "repetition dataset.",
     )
 
+    coding_agent_group = parser.add_argument_group("coding agent dataset options")
+    coding_agent_group.add_argument(
+        "--coding-agent-context-len",
+        type=int,
+        default=4096,
+        help="Number of shared context tokens each coding-agent session "
+        "starts from, used only for the coding_agent dataset.",
+    )
+    coding_agent_group.add_argument(
+        "--coding-agent-append-len",
+        type=int,
+        default=256,
+        help="Number of tokens appended to the context at each step (a tool "
+        "result / observation), used only for the coding_agent dataset.",
+    )
+    coding_agent_group.add_argument(
+        "--coding-agent-output-len",
+        type=int,
+        default=128,
+        help="Number of output tokens per step, used only for the "
+        "coding_agent dataset.",
+    )
+    coding_agent_group.add_argument(
+        "--coding-agent-steps-per-session",
+        type=int,
+        default=8,
+        help="Number of autonomous-loop steps per session, used only for the "
+        "coding_agent dataset.",
+    )
+
     speed_bench_group = parser.add_argument_group(
         "speed bench dataset options", description=SpeedBench.__doc__
     )
@@ -2089,6 +2120,14 @@ def _parse_range_ratio(value: str) -> RangeRatio:
         return float(value)
     except ValueError:
         return json.loads(value)
+
+
+def _coding_agent_dataset_cls() -> type[BenchmarkDataset]:
+    # Imported lazily to avoid a circular import: coding_agent builds on the
+    # base classes defined in this module.
+    from vllm.benchmarks.datasets.coding_agent import CodingAgentDataset
+
+    return CodingAgentDataset
 
 
 def get_samples(args, tokenizer: TokenizerLike) -> list[SampleRequest]:
@@ -2440,6 +2479,20 @@ def get_samples(args, tokenizer: TokenizerLike) -> list[SampleRequest]:
                 suffix_len=args.prefix_repetition_suffix_len,
                 num_prefixes=args.prefix_repetition_num_prefixes,
                 output_len=args.prefix_repetition_output_len,
+                request_id_prefix=args.request_id_prefix,
+                no_oversample=args.no_oversample,
+            ),
+            "coding_agent": lambda: _coding_agent_dataset_cls()(
+                random_seed=args.seed,
+                dataset_path=args.dataset_path,
+                disable_shuffle=args.disable_shuffle,
+            ).sample(
+                tokenizer=tokenizer,
+                num_requests=args.num_prompts,
+                context_len=args.coding_agent_context_len,
+                append_len=args.coding_agent_append_len,
+                output_len=args.coding_agent_output_len,
+                steps_per_session=args.coding_agent_steps_per_session,
                 request_id_prefix=args.request_id_prefix,
                 no_oversample=args.no_oversample,
             ),
