@@ -1673,9 +1673,10 @@ def add_cli_args(parser: FlexibleArgumentParser):
         default=None,
         help="Use timing information from the traces instead of the configuration. "
         "This is useful when replaying traces faithfully based on their timestamps. "
-        "When unset, defaults to False, except for --dataset-name=timed_trace where "
-        "it defaults to True. Use --no-self-timed to force off. When off, user "
-        "defined generation rates are used and in trace timing info is ignored.",
+        "When unset, defaults to False, except for --dataset-name=timed_trace and "
+        "coding_agent_trace where it defaults to True. Use --no-self-timed to force "
+        "off. When off, user defined generation rates are used and in trace timing "
+        "info is ignored.",
     )
     parser.add_argument(
         "--percentile-metrics",
@@ -2017,8 +2018,8 @@ async def main_async(args: argparse.Namespace) -> dict[str, Any]:
     ):
         args.ignore_eos = True
 
-    if args.dataset_name == "timed_trace":
-        # timed_trace carries per-request timestamps;
+    if args.dataset_name in ("timed_trace", "coding_agent_trace"):
+        # timed traces carry per-request timestamps;
         # ignore EOS so generation runs to the trace's specified output length,
         # and default to using those timestamps for scheduling unless the user
         # opted out.
@@ -2030,7 +2031,7 @@ async def main_async(args: argparse.Namespace) -> dict[str, Any]:
         if args.self_timed is not None:
             raise ValueError(
                 "--self-timed/--no-self-timed is only supported with "
-                "--dataset-name=timed_trace"
+                "--dataset-name=timed_trace or coding_agent_trace"
             )
         # for any non self-timed trace, this is False
         args.self_timed = False

@@ -1630,6 +1630,7 @@ def add_dataset_parser(parser: FlexibleArgumentParser):
             "spec_bench",
             "speed_bench",
             "timed_trace",
+            "coding_agent_trace",
         ],
         help="Name of the dataset to benchmark on.",
     )
@@ -2339,6 +2340,19 @@ def get_samples(args, tokenizer: TokenizerLike) -> list[SampleRequest]:
 
     elif args.dataset_name == "timed_trace":
         dataloader = TimedTrace(**vars(args))
+        input_requests = dataloader.sample(
+            num_requests=args.num_prompts,
+            tokenizer=tokenizer,
+            request_id_prefix=args.request_id_prefix,
+        )
+
+    elif args.dataset_name == "coding_agent_trace":
+        # Local import avoids a circular dependency: the coding-agent
+        # trace module imports ``BenchmarkDataset``/``SampleRequest`` from
+        # this module.
+        from vllm.benchmarks.datasets.coding_agent_trace import CodingAgentTrace
+
+        dataloader = CodingAgentTrace(**vars(args))
         input_requests = dataloader.sample(
             num_requests=args.num_prompts,
             tokenizer=tokenizer,

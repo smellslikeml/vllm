@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from vllm.benchmarks.datasets.coding_agent_trace import CodingAgentTrace
 from vllm.benchmarks.datasets.datasets import (
     DEFAULT_NUM_PROMPTS,
     AIMODataset,
@@ -53,6 +54,7 @@ __all__ = [
     "BFCLDataset",
     "BlazeditDataset",
     "BurstGPTDataset",
+    "CodingAgentTrace",
     "ConversationDataset",
     "CustomDataset",
     "CustomAudioDataset",
