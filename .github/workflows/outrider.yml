@@ -106,7 +106,7 @@ jobs:
           - For files > 500 LOC where you only need one function, prefer AST search
             + targeted Read over reading the whole file.
           EOF
-      - uses: remyxai/outrider@feat/pre-publication-fidelity
+      - uses: remyxai/outrider@v1
         with:
           interest-id: d53f77f5-f1c8-4816-89e9-51fef2f78bb5
           # Minimum days between recommendation PRs on this repo. '0' lets
